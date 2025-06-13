@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Sistema Automotivo - CRUD</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        button { padding: 5px 10px; margin: 2px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                 background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background: #fff; padding: 20px; border-radius: 4px; width: 300px; }
+        .modal input { width: 100%; margin-bottom: 10px; padding: 5px; }
+    </style>
+</head>
+<body>
+<h1>Estoque de Veículos</h1>
+<button onclick="openModal('add')">Adicionar Veículo</button>
+<table id="veiculos-table">
+    <thead>
+    <tr>
+        <th>ID</th><th>Modelo</th><th>Marca</th><th>Ano</th><th>Cor</th><th>Quilometragem</th><th>Preço</th><th>Status</th><th>Ações</th>
+    </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <h3 id="modal-title">Veículo</h3>
+        <input type="hidden" id="veiculoId">
+        <input type="text" id="modelo" placeholder="Modelo">
+        <input type="text" id="marca" placeholder="Marca">
+        <input type="number" id="ano" placeholder="Ano">
+        <input type="text" id="cor" placeholder="Cor">
+        <input type="number" id="preco" placeholder="Preço">
+        <input type="number" id="quilometragem" placeholder="Quilometragem">
+        <input type="text" id="status" placeholder="Status">
+        <button onclick="salvarVeiculo()">Salvar</button>
+        <button onclick="fecharModal()">Cancelar</button>
+    </div>
+</div>
+
+<script>
+    const API_URL = 'http://localhost:8081/veiculos';
+
+    function listar() {
+        fetch(API_URL).then(r => r.json()).then(data => {
+            const tbody = document.querySelector('#veiculos-table tbody');
+            tbody.innerHTML = '';
+            data.forEach(veiculo => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${veiculo.id}</td>
+                    <td>${veiculo.modelo}</td>
+                    <td>${veiculo.marca}</td>
+                    <td>${veiculo.ano}</td>
+                    <td>${veiculo.cor}</td>
+                    <td>${veiculo.quilometragem}</td>
+                    <td>${veiculo.preco}</td>
+                    <td>${veiculo.status}</td>
+                    <td>
+                        <button onclick='editarVeiculo(${JSON.stringify(veiculo)})'>Editar</button>
+                        <button onclick='deletarVeiculo(${veiculo.id})'>Excluir</button>
+                    </td>`;
+                tbody.appendChild(tr);
+            });
+        });
+    }
+
+    function openModal(tipo, veiculo = {}) {
+        document.getElementById('modal-title').innerText = tipo === 'add' ? 'Adicionar Veículo' : 'Editar Veículo';
+        document.getElementById('veiculoId').value = tipo === 'edit' ? veiculo.id || '' : '';
+        document.getElementById('modelo').value = veiculo.modelo || '';
+        document.getElementById('marca').value = veiculo.marca || '';
+        document.getElementById('ano').value = veiculo.ano || '';
+        document.getElementById('cor').value = veiculo.cor || '';
+        document.getElementById('preco').value = veiculo.preco || '';
+        document.getElementById('quilometragem').value = veiculo.quilometragem || '';
+        document.getElementById('status').value = veiculo.status || '';
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function fecharModal() {
+        document.getElementById('modal').style.display = 'none';
+    }
+
+    function editarVeiculo(veiculo) {
+        openModal('edit', veiculo);
+    }
+
+    function salvarVeiculo() {
+        const id = document.getElementById('veiculoId').value;
+        const veiculo = {
+            modelo: document.getElementById('modelo').value,
+            marca: document.getElementById('marca').value,
+            ano: parseInt(document.getElementById('ano').value),
+            cor: document.getElementById('cor').value,
+            preco: parseFloat(document.getElementById('preco').value),
+            quilometragem: parseFloat(document.getElementById('quilometragem').value),
+            status: document.getElementById('status').value
+        };
+
+        const metodo = id ? 'PUT' : 'POST';
+        const url = id ? `${API_URL}/${id}` : API_URL;
+
+        if (id) {
+            veiculo.id = id;
+        }
+
+        fetch(url, {
+            method: metodo,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(veiculo)
+        }).then(() => {
+            fecharModal();
+            listar();
+        });
+    }
+
+    function deletarVeiculo(id) {
+        if (confirm("Deseja realmente excluir este veículo?")) {
+            fetch(`${API_URL}/${id}`, { method: 'DELETE' })
+                .then(() => listar());
+        }
+    }
+
+    window.onload = listar;
+</script>
+</body>
+</html>
